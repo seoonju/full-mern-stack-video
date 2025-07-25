@@ -13,9 +13,11 @@ const mongoose = require('mongoose')
 const User = require('./models/user.model')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
+const helmet = require('helmet')
 
 app.use(cors())
 app.use(express.json())
+app.use(helmet()) // Use Helmet to secure Express apps by setting various HTTP headers
 
 mongoose.connect('mongodb://localhost:27017/full-mern-stack-video')
 
@@ -54,7 +56,7 @@ app.post('/api/login', async (req, res) => {
 				name: user.name,
 				email: user.email,
 			},
-			'secret123'
+			process.env.JWT_SECRET // Use environment variable for JWT secret
 		)
 
 		return res.json({ status: 'ok', user: token })
@@ -67,7 +69,7 @@ app.get('/api/quote', async (req, res) => {
 	const token = req.headers['x-access-token']
 
 	try {
-		const decoded = jwt.verify(token, 'secret123')
+		const decoded = jwt.verify(token, process.env.JWT_SECRET) // Use environment variable for JWT secret
 		const email = decoded.email
 		const user = await User.findOne({ email: email })
 
@@ -82,8 +84,11 @@ app.post('/api/quote', async (req, res) => {
 	const token = req.headers['x-access-token']
 
 	try {
-		const decoded = jwt.verify(token, 'secret123')
+		const decoded = jwt.verify(token, process.env.JWT_SECRET) // Use environment variable for JWT secret
 		const email = decoded.email
+		if (typeof req.body.quote !== 'string') { // Validate the type of quote
+			return res.json({ status: 'error', error: 'Invalid quote format' })
+		}
 		await User.updateOne(
 			{ email: email },
 			{ $set: { quote: req.body.quote } }
